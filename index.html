@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MdV - Markdown Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="node_modules/highlight.js/styles/github.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="node_modules/highlight.js/styles/github-dark.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+  <div id="welcome">
+    <h1>MdV</h1>
+    <p>Markdown Viewer</p>
+    <p class="hint">Cmd+O でファイルを開く<br>または .md ファイルをドラッグ&ドロップ</p>
+  </div>
+  <div id="content" class="markdown-body" style="display:none;"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

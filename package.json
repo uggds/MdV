@@ -1,0 +1,41 @@
+{
+  "name": "mdv",
+  "version": "1.0.0",
+  "description": "Simple Markdown Viewer for macOS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.local.mdv",
+    "productName": "MdV",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dir",
+      "fileAssociations": [
+        {
+          "ext": ["md", "markdown"],
+          "name": "Markdown File",
+          "role": "Viewer"
+        }
+      ]
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "node_modules/**/*"
+    ]
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^17.0.3",
+    "marked-highlight": "^2.2.3"
+  },
+  "devDependencies": {
+    "electron": "^40.6.1",
+    "electron-builder": "^26.0.12"
+  }
+}
