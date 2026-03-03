@@ -15,7 +15,10 @@
       "target": "dir",
       "fileAssociations": [
         {
-          "ext": ["md", "markdown"],
+          "ext": [
+            "md",
+            "markdown"
+          ],
           "name": "Markdown File",
           "role": "Viewer"
         }
@@ -32,7 +35,8 @@
   "dependencies": {
     "highlight.js": "^11.11.1",
     "marked": "^17.0.3",
-    "marked-highlight": "^2.2.3"
+    "marked-highlight": "^2.2.3",
+    "mermaid": "^11.12.3"
   },
   "devDependencies": {
     "electron": "^40.6.1",
