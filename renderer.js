@@ -155,6 +155,139 @@ ipcRenderer.on("load-markdown-multiple", async (_event, files) => {
   activateTab(0);
 });
 
+// 検索機能（DOMベース）
+const searchBarEl = document.getElementById("search-bar");
+const searchInputEl = document.getElementById("search-input");
+const searchCountEl = document.getElementById("search-count");
+
+let searchVisible = false;
+let searchMatches = [];
+let activeMatchIndex = -1;
+let searchDebounceTimer = null;
+
+function openSearch() {
+  searchVisible = true;
+  searchBarEl.style.display = "flex";
+  searchInputEl.focus();
+  searchInputEl.select();
+}
+
+function closeSearch() {
+  searchVisible = false;
+  searchBarEl.style.display = "none";
+  searchInputEl.value = "";
+  searchCountEl.textContent = "";
+  clearHighlights();
+}
+
+function clearHighlights() {
+  searchMatches = [];
+  activeMatchIndex = -1;
+  const marks = contentEl.querySelectorAll("mark.search-hit");
+  marks.forEach((mark) => {
+    const parent = mark.parentNode;
+    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+    parent.normalize();
+  });
+}
+
+function highlightMatches(query) {
+  clearHighlights();
+  if (!query) return;
+
+  const lowerQuery = query.toLowerCase();
+  const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+  for (const node of textNodes) {
+    const text = node.textContent;
+    const lowerText = text.toLowerCase();
+    let idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) continue;
+
+    const frag = document.createDocumentFragment();
+    let lastIdx = 0;
+    while (idx !== -1) {
+      frag.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
+      const mark = document.createElement("mark");
+      mark.className = "search-hit";
+      mark.textContent = text.slice(idx, idx + query.length);
+      frag.appendChild(mark);
+      lastIdx = idx + query.length;
+      idx = lowerText.indexOf(lowerQuery, lastIdx);
+    }
+    frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+    node.parentNode.replaceChild(frag, node);
+  }
+
+  searchMatches = Array.from(contentEl.querySelectorAll("mark.search-hit"));
+  if (searchMatches.length > 0) {
+    activeMatchIndex = 0;
+    updateActiveMatch();
+  }
+  updateSearchCount();
+}
+
+function updateActiveMatch() {
+  searchMatches.forEach((m) => m.classList.remove("search-hit-active"));
+  if (activeMatchIndex >= 0 && activeMatchIndex < searchMatches.length) {
+    const active = searchMatches[activeMatchIndex];
+    active.classList.add("search-hit-active");
+    active.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
+
+function updateSearchCount() {
+  if (searchMatches.length > 0) {
+    searchCountEl.textContent = `${activeMatchIndex + 1}/${searchMatches.length}`;
+  } else if (searchInputEl.value) {
+    searchCountEl.textContent = "0件";
+  } else {
+    searchCountEl.textContent = "";
+  }
+}
+
+function goToMatch(forward) {
+  if (searchMatches.length === 0) return;
+  if (forward) {
+    activeMatchIndex = (activeMatchIndex + 1) % searchMatches.length;
+  } else {
+    activeMatchIndex = (activeMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+  }
+  updateActiveMatch();
+  updateSearchCount();
+}
+
+ipcRenderer.on("toggle-search", () => {
+  if (searchVisible) {
+    closeSearch();
+  } else {
+    openSearch();
+  }
+});
+
+searchInputEl.addEventListener("input", () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    highlightMatches(searchInputEl.value);
+  }, 200);
+});
+
+searchInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    goToMatch(!e.shiftKey);
+  }
+  if (e.key === "Escape") {
+    closeSearch();
+  }
+});
+
+document.getElementById("search-prev").addEventListener("click", () => goToMatch(false));
+document.getElementById("search-next").addEventListener("click", () => goToMatch(true));
+document.getElementById("search-close").addEventListener("click", () => closeSearch());
+
 document.addEventListener("dragover", (e) => {
   e.preventDefault();
   e.stopPropagation();

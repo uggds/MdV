@@ -51,7 +51,24 @@ function createWindow() {
         { role: "quit" },
       ],
     },
-    { role: "editMenu" },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+        { type: "separator" },
+        {
+          label: "Find",
+          accelerator: "CmdOrCtrl+F",
+          click: () => mainWindow.webContents.send("toggle-search"),
+        },
+      ],
+    },
     { role: "viewMenu" },
     { role: "windowMenu" },
   ]);
@@ -116,3 +133,4 @@ ipcMain.on("dropped-files", (_event, filePaths) => {
 ipcMain.on("update-title", (_event, title) => {
   mainWindow.setTitle(title);
 });
+
