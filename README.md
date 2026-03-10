@@ -4,7 +4,8 @@ macOS向けのシンプルなMarkdownビューアー。Electron製。
 
 ## スクリーンショット
 
-<!-- TODO: スクリーンショットを追加 -->
+<img width="2712" height="3230" alt="CleanShot 2026-03-10 at 14 42 40@2x" src="https://github.com/user-attachments/assets/654f629c-2710-4339-a006-34de2367c53c" />
+
 
 ## 機能
 
