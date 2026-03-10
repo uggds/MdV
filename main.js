@@ -3,15 +3,15 @@ const fs = require("fs");
 const path = require("path");
 
 let mainWindow;
-let pendingFile = null;
+let pendingFiles = [];
 
 // macOS: Finderの「このアプリで開く」やファイルダブルクリック時に呼ばれる
 app.on("open-file", (event, filePath) => {
   event.preventDefault();
-  if (mainWindow) {
+  if (mainWindow && mainWindow.webContents.isLoading() === false) {
     loadMarkdownFile(filePath);
   } else {
-    pendingFile = filePath;
+    pendingFiles.push(filePath);
   }
 });
 
@@ -28,9 +28,9 @@ function createWindow() {
   mainWindow.loadFile("index.html");
 
   mainWindow.webContents.on("did-finish-load", () => {
-    if (pendingFile) {
-      loadMarkdownFile(pendingFile);
-      pendingFile = null;
+    if (pendingFiles.length > 0) {
+      loadMarkdownFiles(pendingFiles);
+      pendingFiles = [];
     }
   });
 
@@ -60,13 +60,17 @@ function createWindow() {
 
 async function openFile() {
   const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
+    properties: ["openFile", "multiSelections"],
     filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
   });
 
   if (result.canceled || result.filePaths.length === 0) return;
 
-  loadMarkdownFile(result.filePaths[0]);
+  if (result.filePaths.length === 1) {
+    loadMarkdownFile(result.filePaths[0]);
+  } else {
+    loadMarkdownFiles(result.filePaths);
+  }
 }
 
 function loadMarkdownFile(filePath) {
@@ -74,6 +78,16 @@ function loadMarkdownFile(filePath) {
   const fileName = path.basename(filePath);
   mainWindow.webContents.send("load-markdown", { content, fileName, filePath });
   mainWindow.setTitle(`${fileName} - MdV`);
+}
+
+function loadMarkdownFiles(filePaths) {
+  const files = filePaths.map((filePath) => ({
+    content: fs.readFileSync(filePath, "utf-8"),
+    fileName: path.basename(filePath),
+    filePath,
+  }));
+  mainWindow.webContents.send("load-markdown-multiple", files);
+  mainWindow.setTitle(`${files.length} files - MdV`);
 }
 
 app.whenReady().then(createWindow);
@@ -86,4 +100,19 @@ ipcMain.on("dropped-file", (_event, filePath) => {
   if (filePath && (filePath.endsWith(".md") || filePath.endsWith(".markdown"))) {
     loadMarkdownFile(filePath);
   }
+});
+
+ipcMain.on("dropped-files", (_event, filePaths) => {
+  const mdPaths = filePaths.filter(
+    (p) => p.endsWith(".md") || p.endsWith(".markdown")
+  );
+  if (mdPaths.length === 1) {
+    loadMarkdownFile(mdPaths[0]);
+  } else if (mdPaths.length > 1) {
+    loadMarkdownFiles(mdPaths);
+  }
+});
+
+ipcMain.on("update-title", (_event, title) => {
+  mainWindow.setTitle(title);
 });
