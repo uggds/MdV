@@ -2,6 +2,10 @@
 
 macOS 向けのシンプルな Markdown ビューア。Electron 製。
 
+## スクリーンショット
+
+<img width="2712" height="3230" alt="CleanShot 2026-03-10 at 14 42 40@2x" src="https://github.com/user-attachments/assets/654f629c-2710-4339-a006-34de2367c53c" />
+
 ## 機能
 
 - **Markdown レンダリング** — GitHub スタイルの表示（見出し、リスト、テーブル、画像など）
