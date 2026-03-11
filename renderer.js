@@ -4,6 +4,61 @@ const { markedHighlight } = require("marked-highlight");
 const hljs = require("highlight.js");
 const mermaid = require("mermaid").default;
 
+// front-matter を分離する
+function parseFrontMatter(content) {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!match) return { frontMatter: null, body: content };
+
+  const yaml = match[1];
+  const body = match[2];
+  const meta = {};
+  let currentKey = null;
+
+  for (const line of yaml.split(/\r?\n/)) {
+    // インデントされた行 → リスト項目または継続行
+    if (/^\s/.test(line)) {
+      if (currentKey) {
+        const trimmed = line.trim();
+        const item = trimmed.startsWith("- ") ? trimmed.slice(2) : trimmed;
+        if (Array.isArray(meta[currentKey])) {
+          meta[currentKey].push(item);
+        } else if (meta[currentKey] === "") {
+          meta[currentKey] = [item];
+        } else {
+          meta[currentKey] = [meta[currentKey], item];
+        }
+      }
+      continue;
+    }
+    // トップレベルの key: value
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const val = line.slice(idx + 1).trim();
+    if (!key) continue;
+    currentKey = key;
+    meta[key] = val;
+  }
+  return { frontMatter: meta, body };
+}
+
+// front-matter を HTML テーブルに変換する
+function renderFrontMatter(meta) {
+  const rows = Object.entries(meta)
+    .map(([k, v]) => {
+      const val = Array.isArray(v)
+        ? v.map((item) => escapeHtml(item)).join(", ")
+        : escapeHtml(String(v));
+      return `<tr><td class="fm-key">${escapeHtml(k)}</td><td>${val}</td></tr>`;
+    })
+    .join("");
+  return `<details class="front-matter" open><summary>Front Matter</summary><table>${rows}</table></details>`;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 mermaid.initialize({ startOnLoad: false, theme: isDark ? "dark" : "default" });
@@ -78,7 +133,9 @@ function activateTab(index) {
 }
 
 async function addTab(file) {
-  const renderedHTML = marked.parse(file.content);
+  const { frontMatter, body } = parseFrontMatter(file.content);
+  const renderedHTML =
+    (frontMatter ? renderFrontMatter(frontMatter) : "") + marked.parse(body);
 
   // 同じファイルが既に開かれていればそのタブをアクティブにする
   const existing = tabs.findIndex((t) => t.filePath === file.filePath);
@@ -144,7 +201,9 @@ ipcRenderer.on("load-markdown-multiple", async (_event, files) => {
   // 既存タブをクリアして新しいファイル群を表示
   tabs = [];
   for (const file of files) {
-    const renderedHTML = marked.parse(file.content);
+    const { frontMatter, body } = parseFrontMatter(file.content);
+    const renderedHTML =
+      (frontMatter ? renderFrontMatter(frontMatter) : "") + marked.parse(body);
     tabs.push({
       filePath: file.filePath,
       fileName: file.fileName,
